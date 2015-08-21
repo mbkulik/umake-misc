@@ -18,7 +18,7 @@ import umake.frameworks.baseinstaller
 from bs4 import BeautifulSoup
 import os, urllib, logging, shutil
 from os.path import join, isfile
-from umake.interactions import DisplayMessage, UnknownProgress
+from umake.interactions import DisplayMessage
 from umake.network.download_center import DownloadCenter, DownloadItem
 from umake.tools import create_launcher, get_application_desktop_file,\
     ChecksumType, Checksum, MainLoop
@@ -32,12 +32,12 @@ class MiscCategory(umake.frameworks.BaseCategory):
                          description="Miscellaneous Frameworks for ubuntu-make",
                          logo_path=None)
 
-class Popcorntime(umake.frameworks.baseinstaller.BaseInstaller):
-    """Popcorntime Movie Watcher"""
+class PopcornTime(umake.frameworks.baseinstaller.BaseInstaller):
+    """Watch Movies and TV Shows instantly"""
 
     def __init__(self, category):
-        super().__init__(name="Popcorntime",
-                         description="Popcorntime video player",
+        super().__init__(name="PopcornTime",
+                         description="PopcornTime - Watch Movies and TV Shows instantly",
                          category=category,
                          download_page=None,
                          only_on_archs=['amd64'],
@@ -67,10 +67,10 @@ class Popcorntime(umake.frameworks.baseinstaller.BaseInstaller):
         icon_filename = "popcorntime.png"
         icon_path = join(self.install_path, icon_filename)
         exec_path = '"{}" %f'.format(join(self.install_path, "Popcorn-Time"))
-        comment = "The Popcorn-Time video player"
+        comment = "PopcornTime Watch Movies and TV Shows instantly"
         categories = "Video;"
         create_launcher(self.desktop_filename,
-                        get_application_desktop_file(name="Popcorn-Time",
+                        get_application_desktop_file(name="PopcornTime",
                                                      icon_path=icon_path,
                                                      exec=exec_path,
                                                      comment=comment,
@@ -81,14 +81,14 @@ class Popcorntime(umake.frameworks.baseinstaller.BaseInstaller):
         # check path and requirements
         if not super().is_installed:
             return False
-        if not isfile(join(self.install_path, "Popcorntime")):
+        if not isfile(join(self.install_path, "Popcorn-Time")):
             logger.debug("{} binary isn't installed".format(self.name))
             return False
         return True
 
         
 
-class Drjava(umake.frameworks.baseinstaller.BaseInstaller):
+class DrJava(umake.frameworks.baseinstaller.BaseInstaller):
     """The DrJava IDE"""
     
     def __init__(self, category):        
@@ -102,16 +102,38 @@ class Drjava(umake.frameworks.baseinstaller.BaseInstaller):
 
 
     def download_provider_page(self):
-        download_url= "http://downloads.sourceforge.net/project/drjava/1.%20DrJava%20Stable%20Releases/drjava-stable-20140826-r5761/drjava-stable-20140826-r5761.jar?r=&ts=1439498832&use_mirror=iweb"
-        self.download_requests.append(DownloadItem(download_url))
-        self.start_download_and_install()
 
+        jarURL = 'http://sourceforge.net/projects/drjava/files/latest/download'
+
+        response = urllib.request.urlopen('http://sourceforge.net/projects/drjava')
+        htmlDocument = response.read()
+        soupDocument = BeautifulSoup(htmlDocument, 'html.parser')
+        section = soupDocument.find_all('section', id='project-icon')[0]
+        iconURL = section.img.get('src')
+        iconURL = 'http:' + iconURL
+
+        @MainLoop.in_mainloop_thread
+        def done(download_result):
+            resIcon = download_result[iconURL]
+
+            if resIcon.error:
+                logger.error(resIcon.error)
+                UI.return_main_screen()
+
+            if not os.path.exists(self.install_path):
+                os.mkdir(self.install_path)
+
+            shutil.copyfile(resIcon.fd.name, self.install_path + '/drjava.jpeg')
+
+            self.download_requests.append(DownloadItem(jarURL))
+            self.start_download_and_install()
+        
+        DownloadCenter(urls=[DownloadItem(iconURL)], on_done=done, download=True)
+
+        
     def decompress_and_install(self, fd):
         UI.display(DisplayMessage("Installing {}".format(self.name)))
-        
-        if not os.path.exists(self.install_path):
-            os.mkdir(self.install_path)
-        
+
         shutil.copyfile(fd.name, self.install_path + '/drjava.jar')
 
         self.post_install()
@@ -124,7 +146,7 @@ class Drjava(umake.frameworks.baseinstaller.BaseInstaller):
 
     def post_install(self):
         """Create the launcher"""
-        icon_filename = ""
+        icon_filename = "drjava.jpeg"
         icon_path = join(self.install_path, icon_filename)
         exec_path = 'java -jar {} %f'.format(join(self.install_path, "drjava.jar"))
         comment = "DrJava IDE"
