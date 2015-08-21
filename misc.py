@@ -16,7 +16,7 @@
 
 import umake.frameworks.baseinstaller
 from bs4 import BeautifulSoup
-import os, urllib, logging, shutil
+import os, urllib, logging, shutil, platform
 from os.path import join, isfile
 from umake.interactions import DisplayMessage
 from umake.network.download_center import DownloadCenter, DownloadItem
@@ -40,7 +40,7 @@ class PopcornTime(umake.frameworks.baseinstaller.BaseInstaller):
                          description="PopcornTime - Watch Movies and TV Shows instantly",
                          category=category,
                          download_page=None,
-                         only_on_archs=['amd64'],
+                         only_on_archs=['i386','amd64'],
                          desktop_filename='popcorntime.desktop')
 
     def download_provider_page(self):
@@ -49,7 +49,18 @@ class PopcornTime(umake.frameworks.baseinstaller.BaseInstaller):
         response = urllib.request.urlopen('http://popcorntime.io')
         htmlDocument = response.read()
         soupDocument = BeautifulSoup(htmlDocument, 'html.parser')
-        link = soupDocument.find_all('li', "download dl-lin-64")[0]
+
+        arch = platform.machine()
+        downloadType = ''
+        if arch == 'i686':
+            downloadType='download dl-lin-32'
+        elif arch == 'x86_64':
+            downloadType='download dl-lin-64'
+        else:
+            logger.error("Unsupported architecture: {}".format(arch))
+            UI.return_main_screen()
+
+        link = soupDocument.find_all('li', downloadType)[0]
         downloadURL = link.a.get('href')
 
         # grab actual link from download page
