@@ -44,14 +44,22 @@ class Popcorntime(umake.frameworks.baseinstaller.BaseInstaller):
                          desktop_filename='popcorntime.desktop')
 
     def download_provider_page(self):
+
+        # grab initial download link from homepage
         response = urllib.request.urlopen('http://popcorntime.io')
         htmlDocument = response.read()
         soupDocument = BeautifulSoup(htmlDocument, 'html.parser')
         link = soupDocument.find_all('li', "download dl-lin-64")[0]
+        downloadURL = link.a.get('href')
+
+        # grab actual link from download page
+        response = urllib.request.urlopen(downloadURL)
+        htmlDocument = response.read()
+        soupDocument = BeautifulSoup(htmlDocument, 'html.parser')
+        link = soupDocument.find_all('li', "download")[0]
         fileURL = link.a.get('href')
-        fileName = os.path.basename(fileURL)
-    
-        self.download_requests.append(DownloadItem('http://104.236.185.158/build/' + fileName))
+
+        self.download_requests.append(DownloadItem(fileURL))
         self.start_download_and_install()
 
     def post_install(self):
