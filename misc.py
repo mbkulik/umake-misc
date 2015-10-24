@@ -16,7 +16,7 @@
 
 import umake.frameworks.baseinstaller
 from bs4 import BeautifulSoup
-import os, urllib, logging, shutil, platform
+import os, urllib, logging, shutil, platform, re
 from os.path import join, isfile
 from umake.interactions import DisplayMessage
 from umake.network.download_center import DownloadCenter, DownloadItem
@@ -32,72 +32,73 @@ class MiscCategory(umake.frameworks.BaseCategory):
                          description="Miscellaneous Frameworks for ubuntu-make",
                          logo_path=None)
 
-class PopcornTime(umake.frameworks.baseinstaller.BaseInstaller):
-    """Watch Movies and TV Shows instantly"""
+class Processing(umake.frameworks.baseinstaller.BaseInstaller):
+    """The Processing IDE"""
 
-    def __init__(self, category):
-        super().__init__(name="PopcornTime",
-                         description="PopcornTime - Watch Movies and TV Shows instantly",
+    def __init__(self,category):
+        super().__init__(name="Processing",
+                         description="Processing IDE",
                          category=category,
                          download_page=None,
                          only_on_archs=['i386','amd64'],
-                         desktop_filename='popcorntime.desktop')
+                         desktop_filename='processing.desktop')
 
+    
     def download_provider_page(self):
 
         # grab initial download link from homepage
-        response = urllib.request.urlopen('http://popcorntime.io')
+        response = urllib.request.urlopen('https://processing.org/download/?processing')
         htmlDocument = response.read()
         soupDocument = BeautifulSoup(htmlDocument, 'html.parser')
 
         arch = platform.machine()
-        downloadType = ''
+        plat = ''
         if arch == 'i686':
-            downloadType='download dl-lin-32'
+            plat = 'linux32'
         elif arch == 'x86_64':
-            downloadType='download dl-lin-64'
+            plat = 'linux64'
         else:
             logger.error("Unsupported architecture: {}".format(arch))
             UI.return_main_screen()
+            
+        downloads = soupDocument.find('ul', 'current-downloads')
 
-        link = soupDocument.find_all('li', downloadType)[0]
-        downloadURL = link.a.get('href')
-
-        # grab actual link from download page
-        response = urllib.request.urlopen(downloadURL)
-        htmlDocument = response.read()
-        soupDocument = BeautifulSoup(htmlDocument, 'html.parser')
-        link = soupDocument.find_all('li', "download")[0]
-        fileURL = link.a.get('href')
+        fileURL = ''
+        for link in downloads.findAll('a'):
+            url = link.get('href')
+            if plat in url:
+                fileURL = url
+                break
 
         self.download_requests.append(DownloadItem(fileURL))
         self.start_download_and_install()
 
+
     def post_install(self):
         """Create the launcher"""
-        icon_filename = "popcorntime.png"
-        icon_path = join(self.install_path, icon_filename)
-        exec_path = '"{}" %f'.format(join(self.install_path, "Popcorn-Time"))
-        comment = "PopcornTime Watch Movies and TV Shows instantly"
-        categories = "Video;"
+        icon_filename = "foundation-64.png"
+        icon_path = join(self.install_path, 'processing-3.0/lib/icons/' + icon_filename)
+        exec_path = '"{}" %f'.format(join(self.install_path, "processing-3.0/processing"))
+        comment = "The Processing IDE"
+        categories = "Development;IDE;"
         create_launcher(self.desktop_filename,
-                        get_application_desktop_file(name="PopcornTime",
+                        get_application_desktop_file(name="Processing",
                                                      icon_path=icon_path,
                                                      exec=exec_path,
                                                      comment=comment,
                                                      categories=categories))
+
         
     @property
     def is_installed(self):
         # check path and requirements
         if not super().is_installed:
             return False
-        if not isfile(join(self.install_path, "Popcorn-Time")):
+        if not isfile(join(self.install_path, "processing-3.0/processing")):
             logger.debug("{} binary isn't installed".format(self.name))
             return False
-        return True
+        return Tru
 
-        
 
 class DrJava(umake.frameworks.baseinstaller.BaseInstaller):
     """The DrJava IDE"""
@@ -132,7 +133,7 @@ class DrJava(umake.frameworks.baseinstaller.BaseInstaller):
                 UI.return_main_screen()
 
             if not os.path.exists(self.install_path):
-                os.mkdir(self.install_path)
+                os.makedirs(self.install_path)
 
             shutil.copyfile(resIcon.fd.name, self.install_path + '/drjava.jpeg')
 
@@ -174,7 +175,7 @@ class DrJava(umake.frameworks.baseinstaller.BaseInstaller):
     def is_installed(self):
         if not super().is_installed:
             return False
-        if not os.path.isfile(os.path.join(self.install_path, "DrJava")):
-            logger.debug("{} binary isn;t installed".format(self.name))
+        if not os.path.isfile(os.path.join(self.install_path, "drjava.jar")):
+            logger.debug("{} binary isn't installed".format(self.name))
             return False
         return True
