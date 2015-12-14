@@ -60,11 +60,13 @@ class Processing(umake.frameworks.baseinstaller.BaseInstaller):
         else:
             logger.error("Unsupported architecture: {}".format(arch))
             UI.return_main_screen()
-            
-        downloads = soupDocument.find('ul', 'current-downloads')
+
+        downloads = soupDocument.body.find('div', attrs={'class': 'downloads'})
+        self.version = downloads.find('span', attrs={'class': 'version'}).text
+        dl = downloads.find('ul', attrs={'class': 'current-downloads'})
 
         fileURL = ''
-        for link in downloads.findAll('a'):
+        for link in dl.find_all('a'):
             url = link.get('href')
             if plat in url:
                 fileURL = url
@@ -73,12 +75,13 @@ class Processing(umake.frameworks.baseinstaller.BaseInstaller):
         self.download_requests.append(DownloadItem(fileURL))
         self.start_download_and_install()
 
-
     def post_install(self):
         """Create the launcher"""
         icon_filename = "foundation-64.png"
-        icon_path = join(self.install_path, 'processing-3.0/lib/icons/' + icon_filename)
-        exec_path = '"{}" %f'.format(join(self.install_path, "processing-3.0/processing"))
+        icon_path = join(self.install_path, 'processing-%s/lib/icons/%s'
+                         % (self.version, icon_filename))
+        exec_path = '"{}" %f'.format(join(self.install_path,
+                                          'processing-%s/processing' % self.version))
         comment = "The Processing IDE"
         categories = "Development;IDE;"
         create_launcher(self.desktop_filename,
@@ -97,7 +100,7 @@ class Processing(umake.frameworks.baseinstaller.BaseInstaller):
         if not isfile(join(self.install_path, "processing-3.0/processing")):
             logger.debug("{} binary isn't installed".format(self.name))
             return False
-        return Tru
+        return True
 
 
 class DrJava(umake.frameworks.baseinstaller.BaseInstaller):
