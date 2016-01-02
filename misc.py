@@ -77,7 +77,7 @@ class Processing(umake.frameworks.baseinstaller.BaseInstaller):
 
     def post_install(self):
         """Create the launcher"""
-        icon_filename = "foundation-64.png"
+        icon_filename = "pde-128.png"
         icon_path = join(self.install_path, 'processing-%s/lib/icons/%s'
                          % (self.version, icon_filename))
         exec_path = '"{}" %f'.format(join(self.install_path,
